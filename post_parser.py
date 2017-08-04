@@ -19,6 +19,7 @@ def over18(url):
             'yes': 'yes'
         }
         res = rs.post('https://www.ptt.cc/ask/over18', verify=False, data=load)
+        res = rs.get(url, verify=False)
     return BeautifulSoup(res.text, 'html.parser'), res.status_code
 
 
@@ -58,7 +59,6 @@ def replace_to_https(url):
 def post_parser(article):
     url = article['url']
     soup, _ = over18(url)
-
     article = store_article(soup, article)
     pic_url_list = store_pic(soup)
     comments_list = store_comment(soup, article)
