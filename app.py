@@ -21,7 +21,6 @@ def get_page_number(content):
     page_number = content[start_index + 5: end_index]
     return int(page_number) + 1
 
-
 def over18(board):
     res = rs.get('https://www.ptt.cc/bbs/{}/index.html'.format(board), verify=False)
     # 先檢查網址是否包含'over18'字串 ,如有則為18禁網站
@@ -78,6 +77,7 @@ def write_db_article(board, article_list, session):
             data = Articles(board=board, author=article['author'],
                     title=article['title'], url=article['url'], rate=article['rate'])
             session.add(data)
+            logging.info("The article have been added: {}".format(article['url']))
         else:
             logging.debug("This article is exist: {}".format(article['url']))
     session.commit()
@@ -88,8 +88,10 @@ def update_db_article(article, session):
     if is_exist:
         session.query(Articles).filter(Articles.url == article['url']).\
                 update({Articles.post_date : article['post_date']})
+        session.query(Articles).filter(Articles.url == article['url']).\
+                                update({Articles.post_content : article['post_content']})
         session.commit()
-        logging.debug("This article is updated: {}".format(article['url']))
+        logging.info("This article has been updated: {}".format(article['url']))
 
 def write_db_comment(comments, article_url, session):
     is_exist = session.query(Comments).filter(Comments.url == article_url).first()
@@ -100,15 +102,22 @@ def write_db_comment(comments, article_url, session):
                     rate = comment['rate'], content=comment['content'])
             session.add(data)
         session.commit()
+        logging.info("Comments have been added: {}".format(article_url))
+    else:
+        logging.debug("Comments had been added before: {}".format(article_url))
 
 def write_db(images, article_url, session):
-    for image in images:
-        is_exist = session.query(Images).filter(Images.url == image).first()
-        if not is_exist:
-            data = Images(url=article_url, imgurl=image)
-            session.add(data)
-    session.commit()
-
+    is_exist = session.query(Images).filter(Images.url == article_url).first()
+    if not is_exist:
+        for image in images:
+            is_exist = session.query(Images).filter(Images.url == image).first()
+            if not is_exist:
+                data = Images(url=article_url, imgurl=image)
+                session.add(data)
+        session.commit()
+        logging.info("Images have been added: {}".format(article_url))
+    else:
+        logging.debug("Images had been added before: {}".format(article_url))
 
 def connect_db(db_string):
     engine = create_engine(db_string)
