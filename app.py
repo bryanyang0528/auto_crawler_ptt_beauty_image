@@ -6,8 +6,8 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import schedule
-import download_beauty
-from dbModel import Images, DB_connect
+import post_parser
+from dbModel import Images, Articles, Comments, DB_connect
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 rs = requests.session()
@@ -49,7 +49,7 @@ def craw_page(res, push_rate):
                     if rate_text.startswith('爆'):
                         rate = 100
                     elif rate_text.startswith('X'):
-                        rate = -1 * int(rate_text[1])
+                        rate = -10 * int(rate_text[1])
                     else:
                         rate = rate_text
                 else:
@@ -65,12 +65,27 @@ def craw_page(res, push_rate):
             print('本文已被刪除', e)
     return article_seq
 
-
-def write_db(images, session):
-    for image in images:
-        is_exist = session.query(Images).filter(Images.Url == image).first()
+def write_db_article(article_list, session):
+    for article in article_list:
+        is_exist = session.query(Articles).filter(Articles.url == article['url']).first()
         if not is_exist:
-            data = Images(Url=image)
+            data = Articles(title=article['title'], url=article['url'], rate=article['rate'])
+            session.add(data)
+    session.commit()
+
+def write_db_comment(comments, article_url, session):
+    is_exist = session.query(Comments).filter(Comments.url == article_url).first()
+    if not is_exist:
+        for comment in comments:
+            data = Comments(url=article_url, rate=comment['rate'], content=comment['content'])
+            session.add(data)
+        session.commit()
+
+def write_db(images, article_url, session):
+    for image in images:
+        is_exist = session.query(Images).filter(Images.url == image).first()
+        if not is_exist:
+            data = Images(url=article_url, imgurl=image)
             session.add(data)
     session.commit()
 
@@ -85,7 +100,7 @@ def connect_db(db_string):
 def main(crawler_pages=2):
     engine, session = connect_db(DB_connect)
     # python beauty_spider2.py [版名]  [爬幾頁] [推文多少以上]
-    board, page_term, push_rate = 'beauty', crawler_pages, 10
+    board, page_term, push_rate = 'beauty', crawler_pages, -100
     start_time = time.time()
     soup = over18(board)
     all_page_url = soup.select('.btn.wide')[1]['href']
@@ -111,21 +126,33 @@ def main(crawler_pages=2):
         time.sleep(0.05)
 
     total = len(article_list)
+    print(article_list)
+    write_db_article(article_list, session)
     count = 0
     image_seq = []
     # 進入每篇文章分析內容
     while article_list:
         article = article_list.pop(0)
-        res = rs.get(article['url'], verify=False)
+        article_url = article['url']
+        res = rs.get(article_url, verify=False)
         # 如網頁忙線中,則先將網頁加入 index_list 並休息1秒後再連接
         if res.status_code != 200:
             article_list.append(article)
             time.sleep(1)
         else:
-            count += 1
-            image_seq += download_beauty.store_pic(article['url'])
-            write_db(image_seq, session)
-            print('download: {:.2%}'.format(count / total))
+            is_exist = session.query(Articles).filter(Articles.url == article_url)
+            if is_exist:
+                count += 1
+                # 儲存圖面
+                image_seq += post_parser.store_pic(article_url)
+                write_db(image_seq, article_url, session)
+
+                # 儲存推文
+                comments_list = post_parser.store_comment(article_url)
+                print(comments_list)
+                write_db_comment(comments_list, article_url, session)
+
+                print('download: {:.2%}'.format(count / total))
         time.sleep(0.05)
 
     # disconnect
