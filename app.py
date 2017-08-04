@@ -1,4 +1,5 @@
 import time, os
+import logging
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
@@ -9,8 +10,10 @@ import schedule
 import post_parser
 from dbModel import Images, Articles, Comments, DB_connect
 
+
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 rs = requests.session()
+logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s', datefmt='%Y-%m-%d %I:%M:%S', level=logging.INFO)
 
 def get_page_number(content):
     start_index = content.find('index')
@@ -23,7 +26,7 @@ def over18(board):
     res = rs.get('https://www.ptt.cc/bbs/{}/index.html'.format(board), verify=False)
     # 先檢查網址是否包含'over18'字串 ,如有則為18禁網站
     if 'over18' in res.url:
-        print("18禁網頁")
+        logging.info("18禁網頁")
         load = {
             'from': '/bbs/{}/index.html'.format(board),
             'yes': 'yes'
@@ -65,7 +68,7 @@ def craw_page(res, push_rate):
                         'rate': rate,
                     })
         except Exception as e:
-            print('本文已被刪除', e)
+            logging.warning('本文已被刪除')
     return article_seq
 
 def write_db_article(board, article_list, session):
@@ -75,6 +78,8 @@ def write_db_article(board, article_list, session):
             data = Articles(board=board, author=article['author'],
                     title=article['title'], url=article['url'], rate=article['rate'])
             session.add(data)
+        else:
+            logging.debug("This article is exist: {}".format(article['url']))
     session.commit()
 
 def update_db_article(article, session):
@@ -84,6 +89,7 @@ def update_db_article(article, session):
         session.query(Articles).filter(Articles.url == article['url']).\
                 update({Articles.post_date : article['post_date']})
         session.commit()
+        logging.debug("This article is updated: {}".format(article['url']))
 
 def write_db_comment(comments, article_url, session):
     is_exist = session.query(Comments).filter(Comments.url == article_url).first()
@@ -112,6 +118,7 @@ def connect_db(db_string):
 
 
 def main(board='beauty', crawler_pages=2):
+    logging.info('Start Crawler. target: {}, pages: {}'.format(board, crawler_pages))
     engine, session = connect_db(DB_connect)
     # python beauty_spider2.py [版名]  [爬幾頁] [推文多少以上]
     page_term, push_rate = crawler_pages, -100
@@ -120,7 +127,7 @@ def main(board='beauty', crawler_pages=2):
     all_page_url = soup.select('.btn.wide')[1]['href']
     start_page = get_page_number(all_page_url)
 
-    print("Analytical download page...")
+    logging.info("Analyzing download page...")
     index_list = []
     article_list = []
     for page in range(start_page, start_page - page_term, -1):
@@ -140,7 +147,7 @@ def main(board='beauty', crawler_pages=2):
         time.sleep(0.05)
 
     total = len(article_list)
-    print(article_list)
+    logging.info("Add {} posts".format(len(article_list)))
     write_db_article(board, article_list, session)
     count = 0
     image_seq = []
@@ -156,37 +163,36 @@ def main(board='beauty', crawler_pages=2):
         else:
             is_exist = session.query(Articles).filter(Articles.url == article_url)
             if is_exist:
-                article_content = post_parser.store_article(article_url, article)
-                update_db_article(article_content, session)
+                logging.info("Analyzing the article: {}".format(article_url))
+                article, imgurl_list, comments_list = post_parser.post_parser(article)
+                update_db_article(article, session)
                 count += 1
                 # 儲存圖面
-                image_seq += post_parser.store_pic(article_url)
+                image_seq += imgurl_list
                 write_db(image_seq, article_url, session)
 
                 # 儲存推文
-                comments_list = post_parser.store_comment(article)
                 #print(comments_list)
                 write_db_comment(comments_list, article_url, session)
 
-                print('download: {:.2%}'.format(count / total))
+                logging.info('download: {:.2%}'.format(count / total))
         time.sleep(0.05)
 
     # disconnect
     session.close()
     engine.dispose()
 
-    print("下載完畢...")
-    print('execution time: {:.3}s'.format(time.time() - start_time))
+    logging.info("Download complete...")
+    logging.info('Execution time: {:.3}s'.format(time.time() - start_time))
 
 
 if __name__ == '__main__':
     board = os.environ['PTT_BOARD']
     pages = int(os.environ['PTT_PAGES'])
     crawler_interval = int(os.environ['PTT_CRAWLER_INTERVAL'])
-    print('main')
     main(board, pages)
     schedule.every(crawler_interval).minutes.do(main)
     while True:
-        print('wating......')
+        logging.info('wating......')
         schedule.run_pending()
-        time.sleep(10)
+        time.sleep(crawler_interval * 6)
