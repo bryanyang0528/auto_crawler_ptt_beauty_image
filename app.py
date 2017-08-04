@@ -111,7 +111,7 @@ def write_db_comment(comments, article_url, session):
                 rate = comment['rate'], content=comment['content'])
             session.add(data)
         session.commit()
-        logging.info("Comments had been added: {}".format(article_url))
+        logging.info("Comments have been added: {}".format(article_url))
 
 def write_db(images, article_url, session):
     is_exist = session.query(Images).filter(Images.url == article_url).first()
