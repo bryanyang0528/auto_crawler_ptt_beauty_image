@@ -1,9 +1,9 @@
-import time
-
+import time, os
+from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, update
 from sqlalchemy.orm import sessionmaker
 import schedule
 import post_parser
@@ -11,7 +11,6 @@ from dbModel import Images, Articles, Comments, DB_connect
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 rs = requests.session()
-
 
 def get_page_number(content):
     start_index = content.find('index')
@@ -42,6 +41,8 @@ def craw_page(res, push_rate):
             link = r_ent.find('a')['href']
             if link:
                 # 確定得到url再去抓 標題 以及 推文數
+                author  = r_ent.find(class_="author").text.strip()
+                post_date = r_ent.find(class_="date").text.strip()
                 title = r_ent.find(class_="title").text.strip()
                 rate_text = r_ent.find(class_="nrec").text
                 url = 'https://www.ptt.cc' + link
@@ -57,6 +58,8 @@ def craw_page(res, push_rate):
                 # 比對推文數
                 if int(rate) >= push_rate:
                     article_seq.append({
+                        'post_date': post_date,
+                        'author': author,
                         'title': title,
                         'url': url,
                         'rate': rate,
@@ -65,19 +68,30 @@ def craw_page(res, push_rate):
             print('本文已被刪除', e)
     return article_seq
 
-def write_db_article(article_list, session):
+def write_db_article(board, article_list, session):
     for article in article_list:
         is_exist = session.query(Articles).filter(Articles.url == article['url']).first()
         if not is_exist:
-            data = Articles(title=article['title'], url=article['url'], rate=article['rate'])
+            data = Articles(board=board, author=article['author'],
+                    title=article['title'], url=article['url'], rate=article['rate'])
             session.add(data)
     session.commit()
+
+def update_db_article(article, session):
+    is_exist = session.query(Articles).filter(Articles.url == article['url'],
+                                              Articles.post_date == None).first()
+    if is_exist:
+        session.query(Articles).filter(Articles.url == article['url']).\
+                update({Articles.post_date : article['post_date']})
+        session.commit()
 
 def write_db_comment(comments, article_url, session):
     is_exist = session.query(Comments).filter(Comments.url == article_url).first()
     if not is_exist:
         for comment in comments:
-            data = Comments(url=article_url, rate=comment['rate'], content=comment['content'])
+            data = Comments(url=article_url, commenter = comment['commenter'], 
+                    comment_date = comment['comment_date'],
+                    rate = comment['rate'], content=comment['content'])
             session.add(data)
         session.commit()
 
@@ -97,10 +111,10 @@ def connect_db(db_string):
     return engine, session
 
 
-def main(crawler_pages=2):
+def main(board='beauty', crawler_pages=2):
     engine, session = connect_db(DB_connect)
     # python beauty_spider2.py [版名]  [爬幾頁] [推文多少以上]
-    board, page_term, push_rate = 'beauty', crawler_pages, -100
+    page_term, push_rate = crawler_pages, -100
     start_time = time.time()
     soup = over18(board)
     all_page_url = soup.select('.btn.wide')[1]['href']
@@ -126,8 +140,8 @@ def main(crawler_pages=2):
         time.sleep(0.05)
 
     total = len(article_list)
-    #print(article_list)
-    write_db_article(article_list, session)
+    print(article_list)
+    write_db_article(board, article_list, session)
     count = 0
     image_seq = []
     # 進入每篇文章分析內容
@@ -142,13 +156,15 @@ def main(crawler_pages=2):
         else:
             is_exist = session.query(Articles).filter(Articles.url == article_url)
             if is_exist:
+                article_content = post_parser.store_article(article_url, article)
+                update_db_article(article_content, session)
                 count += 1
                 # 儲存圖面
                 image_seq += post_parser.store_pic(article_url)
                 write_db(image_seq, article_url, session)
 
                 # 儲存推文
-                comments_list = post_parser.store_comment(article_url)
+                comments_list = post_parser.store_comment(article)
                 #print(comments_list)
                 write_db_comment(comments_list, article_url, session)
 
@@ -164,9 +180,12 @@ def main(crawler_pages=2):
 
 
 if __name__ == '__main__':
+    board = os.environ['PTT_BOARD']
+    pages = os.environ['PTT_PAGES']
+    crawler_interval = os.environ['PTT_CRAWLER_INTERVAL']
     print('main')
-    main()
-    schedule.every(30).minutes.do(main)
+    main(board, pages)
+    schedule.every(crawler_interval).minutes.do(main)
     while True:
         print('wating......')
         schedule.run_pending()

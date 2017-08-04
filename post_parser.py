@@ -1,6 +1,7 @@
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 rs = requests.session()
@@ -27,6 +28,15 @@ def remove(value, deletechars):
         value = value.replace(c, '')
     return value.rstrip()
 
+def date_convert(year, date):
+    year = int(year)
+    month = int(date.split("/")[0])
+    day = int(date.split("/")[1])
+    try:
+        dt = datetime(year, month, day)
+    except ValueError as e:
+        return None
+    return dt
 
 def image_url(link):
     # 符合圖片格式的網址
@@ -45,6 +55,14 @@ def replace_to_https(url):
         return url.replace('http', 'https')
     return url
 
+def store_article(url, article):
+    soup, _ = over18(url)
+    date = soup.select('.article-meta-value')[3].text
+    year = date.split(" ")[-1]
+    post_date = date_convert(year, article['post_date'])
+    article['post_date'] = post_date
+    return article
+
 
 def store_pic(url):
     # 檢查看板是否為18禁,有些看板為18禁
@@ -60,8 +78,8 @@ def store_pic(url):
 
     return pic_url_list
 
-def store_comment(url):
-    soup, _ = over18(url)
+def store_comment(article):
+    soup, _ = over18(article['url'])
     comments_list = []
 
     for tag in soup.select('div.push'):
@@ -71,16 +89,20 @@ def store_comment(url):
         push_userid = tag.find("span", {'class': 'push-userid'}).text       
         #print "push_userid:",push_userid
         push_content = tag.find("span", {'class': 'push-content'}).text   
-        comment['content'] = push_content[1:]
         
 	#print "push_content:",push_content
-        #push_ipdatetime = tag.find("span", {'class': 'push-ipdatetime'}).text   
-        #push_ipdatetime = remove(push_ipdatetime, '\n')
+        push_ipdatetime = tag.find("span", {'class': 'push-ipdatetime'}).text.strip()
+        push_ipdate = push_ipdatetime.split(' ')[0]
+        push_iptime = push_ipdatetime.split(' ')[1]
         #print "push-ipdatetime:",push_ipdatetime 
                 
         #message[num]={"狀態":push_tag.encode('utf-8'),"留言者":push_userid.encode('utf-8'),
         #    "留言內容":push_content.encode('utf-8'),"留言時間":push_ipdatetime.encode('utf-8')}
         
+        comment['commenter'] = push_userid
+        comment['content'] = push_content[1:]
+        comment['comment_date'] = date_convert(article['post_date'].year, push_ipdate)
+
         if push_tag == u'推 ':
             comment['rate'] = 1
         elif push_tag == u'噓 ':

@@ -1,6 +1,6 @@
 import os
 from sqlalchemy.sql import func
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Date
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -19,7 +19,9 @@ class Images(Base):
 class Articles(Base):
     __tablename__ = 'articles'
 
-    id = Column(Integer, primary_key=False)
+    board = Column(String)
+    post_date = Column(Date)
+    author = Column(String)
     title = Column(String)
     url = Column(String, primary_key=True)
     rate = Column(Integer)
@@ -31,9 +33,11 @@ class Comments(Base):
     __tablename__ = 'comments'
 
     id = Column(Integer, primary_key=True)
+    commenter = Column(String)
     url = Column(String, ForeignKey('articles.url'))
     content = Column(String)
     rate = Column(Integer)
+    comment_date = Column(Date)
 
 if __name__ == '__main__':
     engine = create_engine(DB_connect)
