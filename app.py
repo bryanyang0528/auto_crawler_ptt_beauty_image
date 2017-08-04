@@ -22,7 +22,8 @@ def get_page_number(content):
     return int(page_number) + 1
 
 def over18(board):
-    res = rs.get('https://www.ptt.cc/bbs/{}/index.html'.format(board), verify=False)
+    url = 'https://www.ptt.cc/bbs/{}/index.html'.format(board)
+    res = rs.get(url, verify=False)
     # 先檢查網址是否包含'over18'字串 ,如有則為18禁網站
     if 'over18' in res.url:
         logging.info("18禁網頁")
@@ -31,6 +32,7 @@ def over18(board):
             'yes': 'yes'
         }
         res = rs.post('https://www.ptt.cc/ask/over18', verify=False, data=load)
+        res = rs.get(url, verify=False)
     return BeautifulSoup(res.text, 'html.parser')
 
 
@@ -83,30 +85,33 @@ def write_db_article(board, article_list, session):
     session.commit()
 
 def update_db_article(article, session):
-    is_exist = session.query(Articles).filter(Articles.url == article['url'],
-                                              Articles.post_date == None).first()
-    if is_exist:
+    is_exist = session.query(Articles).filter(Articles.url == article['url']).first()
+    is_updated = session.query(Articles).filter(Articles.url == article['url'],
+                                 Articles.post_date != None).first()
+    if is_exist and not is_updated:
         session.query(Articles).filter(Articles.url == article['url']).\
-                update({Articles.post_date : article['post_date']})
+                    update({Articles.post_date : article['post_date']})
         session.query(Articles).filter(Articles.url == article['url']).\
-                                update({Articles.post_content : article['post_content']})
+                    update({Articles.post_content : article['post_content']})
         session.commit()
         logging.info("This article has been updated: {}".format(article['url']))
+
+    elif is_updated:
+        logging.warning("This article is updated: {}".format(article['url']))
     else:
         logging.error("This article is not exist: {}".format(article['url']))
 
 def write_db_comment(comments, article_url, session):
-    is_exist = session.query(Comments).filter(Comments.url == article_url).first()
-    if not is_exist:
-        for comment in comments:
-            data = Comments(url=article_url, commenter = comment['commenter'], 
-                    comment_date = comment['comment_date'],
-                    rate = comment['rate'], content=comment['content'])
+    len_comments = session.query(Comments).filter(Comments.url == article_url).count()
+    logging.info("There were {} comments. Here are {} comments ".format(len_comments, len(comments)))
+    if len(comments) > len_comments:
+        for comment in comments[len_comments:]:
+            data = Comments(url=article_url, commenter = comment['commenter'],
+                comment_date = comment['comment_date'],
+                rate = comment['rate'], content=comment['content'])
             session.add(data)
         session.commit()
-        logging.info("Comments have been added: {}".format(article_url))
-    else:
-        logging.warning("Comments had been added before: {}".format(article_url))
+        logging.warning("Comments had been added: {}".format(article_url))
 
 def write_db(images, article_url, session):
     is_exist = session.query(Images).filter(Images.url == article_url).first()
