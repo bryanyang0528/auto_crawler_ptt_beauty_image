@@ -181,8 +181,8 @@ def main(board='beauty', crawler_pages=2):
 
 if __name__ == '__main__':
     board = os.environ['PTT_BOARD']
-    pages = os.environ['PTT_PAGES']
-    crawler_interval = os.environ['PTT_CRAWLER_INTERVAL']
+    pages = int(os.environ['PTT_PAGES'])
+    crawler_interval = int(os.environ['PTT_CRAWLER_INTERVAL'])
     print('main')
     main(board, pages)
     schedule.every(crawler_interval).minutes.do(main)
