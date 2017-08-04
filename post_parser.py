@@ -59,3 +59,35 @@ def store_pic(url):
             pic_url_list.append(replace_to_https(img_url))
 
     return pic_url_list
+
+def store_comment(url):
+    soup, _ = over18(url)
+    comments_list = []
+
+    for tag in soup.select('div.push'):
+        comment = {}
+        push_tag = tag.find("span", {'class': 'push-tag'}).text
+        #print "push_tag:",push_tag
+        push_userid = tag.find("span", {'class': 'push-userid'}).text       
+        #print "push_userid:",push_userid
+        push_content = tag.find("span", {'class': 'push-content'}).text   
+        comment['content'] = push_content[1:]
+        
+	#print "push_content:",push_content
+        #push_ipdatetime = tag.find("span", {'class': 'push-ipdatetime'}).text   
+        #push_ipdatetime = remove(push_ipdatetime, '\n')
+        #print "push-ipdatetime:",push_ipdatetime 
+                
+        #message[num]={"狀態":push_tag.encode('utf-8'),"留言者":push_userid.encode('utf-8'),
+        #    "留言內容":push_content.encode('utf-8'),"留言時間":push_ipdatetime.encode('utf-8')}
+        
+        if push_tag == u'推 ':
+            comment['rate'] = 1
+        elif push_tag == u'噓 ':
+            comment['rate'] = -1
+        else:
+            comment['rate'] = 0
+
+        comments_list.append(comment)
+
+    return comments_list
