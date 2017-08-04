@@ -79,7 +79,7 @@ def write_db_article(board, article_list, session):
             session.add(data)
             logging.info("The article have been added: {}".format(article['url']))
         else:
-            logging.debug("This article is exist: {}".format(article['url']))
+            logging.warning("This article is exist: {}".format(article['url']))
     session.commit()
 
 def update_db_article(article, session):
@@ -92,6 +92,8 @@ def update_db_article(article, session):
                                 update({Articles.post_content : article['post_content']})
         session.commit()
         logging.info("This article has been updated: {}".format(article['url']))
+    else:
+        logging.error("This article is not exist: {}".format(article['url']))
 
 def write_db_comment(comments, article_url, session):
     is_exist = session.query(Comments).filter(Comments.url == article_url).first()
@@ -104,7 +106,7 @@ def write_db_comment(comments, article_url, session):
         session.commit()
         logging.info("Comments have been added: {}".format(article_url))
     else:
-        logging.debug("Comments had been added before: {}".format(article_url))
+        logging.warning("Comments had been added before: {}".format(article_url))
 
 def write_db(images, article_url, session):
     is_exist = session.query(Images).filter(Images.url == article_url).first()
@@ -117,7 +119,7 @@ def write_db(images, article_url, session):
         session.commit()
         logging.info("Images have been added: {}".format(article_url))
     else:
-        logging.debug("Images had been added before: {}".format(article_url))
+        logging.warning("Images had been added before: {}".format(article_url))
 
 def connect_db(db_string):
     engine = create_engine(db_string)
