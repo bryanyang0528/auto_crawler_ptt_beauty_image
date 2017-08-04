@@ -49,14 +49,23 @@ def image_url(link):
         return '{}.jpg'.format(link)
     return ''
 
-
 def replace_to_https(url):
     if not url.startswith('https'):
         return url.replace('http', 'https')
     return url
 
-def store_article(url, article):
+
+def post_parser(article):
+    url = article['url']
     soup, _ = over18(url)
+
+    article = store_article(soup, article)
+    pic_url_list = store_pic(soup)
+    comments_list = store_comment(soup, article)
+
+    return article, pic_url_list, comments_list
+
+def store_article(soup, article):
     date = soup.select('.article-meta-value')[3].text
     year = date.split(" ")[-1]
     post_date = date_convert(year, article['post_date'])
@@ -64,9 +73,8 @@ def store_article(url, article):
     return article
 
 
-def store_pic(url):
+def store_pic(soup):
     # 檢查看板是否為18禁,有些看板為18禁
-    soup, _ = over18(url)
     # 避免有些文章會被使用者自行刪除標題列
     pic_url_list = []
 
@@ -78,8 +86,7 @@ def store_pic(url):
 
     return pic_url_list
 
-def store_comment(article):
-    soup, _ = over18(article['url'])
+def store_comment(soup, article):
     comments_list = []
 
     for tag in soup.select('div.push'):
