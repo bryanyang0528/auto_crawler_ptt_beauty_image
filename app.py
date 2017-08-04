@@ -126,7 +126,7 @@ def main(crawler_pages=2):
         time.sleep(0.05)
 
     total = len(article_list)
-    print(article_list)
+    #print(article_list)
     write_db_article(article_list, session)
     count = 0
     image_seq = []
@@ -149,7 +149,7 @@ def main(crawler_pages=2):
 
                 # 儲存推文
                 comments_list = post_parser.store_comment(article_url)
-                print(comments_list)
+                #print(comments_list)
                 write_db_comment(comments_list, article_url, session)
 
                 print('download: {:.2%}'.format(count / total))
@@ -170,4 +170,4 @@ if __name__ == '__main__':
     while True:
         print('wating......')
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(10)
