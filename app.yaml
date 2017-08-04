@@ -1,3 +1,4 @@
+service: ptt-beauty
 entrypoint: python app.py
 env: flex
 runtime: python
@@ -7,7 +8,10 @@ runtime_config:
 
 env_variables:
         SQLALCHEMY_DATABASE_URI: >-
-                postgresql+psycopg2://postgres:123456@/beauty?host=/cloudsql/beuty-175714:asia-east1:beauty
+                postgresql+psycopg2://postgres:123456@/ptt?host=/cloudsql/beuty-175714:asia-east1:beauty
+        PTT_BOARD: 'beauty'
+        PTT_PAGES: '2'
+        PTT_CRAWLER_INTERVAL: '30'
 
 beta_settings:
             cloud_sql_instances: beuty-175714:asia-east1:beauty
