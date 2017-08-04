@@ -97,7 +97,7 @@ def update_db_article(article, session):
         logging.info("This article has been updated: {}".format(article['url']))
 
     elif is_updated:
-        logging.warning("This article is updated: {}".format(article['url']))
+        logging.warning("This article was updated: {}".format(article['url']))
     else:
         logging.error("This article is not exist: {}".format(article['url']))
 
@@ -111,7 +111,7 @@ def write_db_comment(comments, article_url, session):
                 rate = comment['rate'], content=comment['content'])
             session.add(data)
         session.commit()
-        logging.warning("Comments had been added: {}".format(article_url))
+        logging.info("Comments had been added: {}".format(article_url))
 
 def write_db(images, article_url, session):
     is_exist = session.query(Images).filter(Images.url == article_url).first()
