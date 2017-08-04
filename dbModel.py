@@ -1,6 +1,6 @@
 import os
 from sqlalchemy.sql import func
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Date, Text
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -25,6 +25,7 @@ class Articles(Base):
     title = Column(String)
     url = Column(String, primary_key=True)
     rate = Column(Integer)
+    post_content = Column(Text)
     createdate = Column(DateTime(timezone=True), server_default=func.now())
     images = relationship('Images')
     comments = relationship('Comments')

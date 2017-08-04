@@ -66,10 +66,21 @@ def post_parser(article):
     return article, pic_url_list, comments_list
 
 def store_article(soup, article):
+    #parse date
     date = soup.select('.article-meta-value')[3].text
     year = date.split(" ")[-1]
     post_date = date_convert(year, article['post_date'])
+    
+    #parse content
+    content = soup.find(id="main-content").text
+    target_content=u'※ 發信站: 批踢踢實業坊(ptt.cc),'
+    content = content.split(target_content)
+    content = content[0].split(date)
+    main_content = content[1].replace('\n', '  ').replace('\t', '  ')
+    
     article['post_date'] = post_date
+    article['post_content'] = main_content
+    
     return article
 
 
