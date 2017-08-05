@@ -24,6 +24,11 @@ def get_page_number(content):
 def over18(board):
     url = 'https://www.ptt.cc/bbs/{}/index.html'.format(board)
     res = rs.get(url, verify=False)
+    while res.status_code != 200:
+        time.sleep(30)
+        logging.warning("The return code is {}.".format(res.status_code)) 
+        logging.warning("The target url cannot be crawled: {}".format(url))
+        res = rs.get(url, verify=False)
     # 先檢查網址是否包含'over18'字串 ,如有則為18禁網站
     if 'over18' in res.url:
         logging.info("18禁網頁")
