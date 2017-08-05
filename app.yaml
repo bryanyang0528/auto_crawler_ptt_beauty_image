@@ -1,4 +1,4 @@
-service: ptt-wanted
+service: ptt-gossiping
 entrypoint: python app.py
 env: flex
 runtime: python
@@ -9,7 +9,7 @@ runtime_config:
 env_variables:
         SQLALCHEMY_DATABASE_URI: >-
                 postgresql+psycopg2://postgres:123456@/ptt?host=/cloudsql/beuty-175714:asia-east1:beauty
-        PTT_BOARD: 'wanted'
+        PTT_BOARD: 'gossiping'
         PTT_PAGES: '3'
         PTT_CRAWLER_INTERVAL: '10'
 
@@ -23,3 +23,13 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.5
 
+skip_files:
+        - ^(.*/)?#.*#$
+        - ^(.*/)?.*~$
+        - ^(.*/)?.*\.py[co]$
+        - ^(.*/)?.*/RCS/.*$
+        - ^(.*/)?\..*$
+        - bin/
+        - __pycache__/
+        - lib/
+        - include/
