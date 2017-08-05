@@ -10,6 +10,10 @@ Deploy on Google App Engine
 
 * The target board and frequency could be set in the app.yaml file and deploy to a specific gae service.
 
+* Comments below articles will be updated.
+
+* Image url will be saved in the database.
+
 * Database is a Postgresql on GCP.
 
 ## How to use
