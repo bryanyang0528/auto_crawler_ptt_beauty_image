@@ -15,7 +15,9 @@ Deploy on Google App Engine
 ## How to use
 
 * pre-requirement
+
 `python 3.5+`
+
 [cloud_sql_proxy](https://cloud.google.com/sql/docs/mysql/sql-proxy)
 
 * install python packages
