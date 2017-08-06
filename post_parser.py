@@ -1,11 +1,13 @@
 import requests
+import logging
+import re
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from bs4 import BeautifulSoup
 from datetime import datetime
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 rs = requests.session()
-
+logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s', datefmt='%Y-%m-%d %I:%M:%S', level=logging.INFO)
 
 def over18(url):
     res = rs.get(url, verify=False)
@@ -67,20 +69,42 @@ def post_parser(article):
 
 def store_article(soup, article):
     #parse date
-    date = soup.select('.article-meta-value')[3].text
-    year = date.split(" ")[-1]
+    try:
+        date = soup.select('.article-metaline')[2].select('.article-meta-value')[0].text
+    #date = soup.select('.article-meta-value')[3].text
+        year = date.split(" ")[-1]
+        post_date = date_convert(year, article['post_date'])
+    except:
+        logging.error("Failed to parse date")
+        if article['post_date'] == '02/29':
+            article['post_date'] = '02/28' 
+        year = datetime.now().year
+
     post_date = date_convert(year, article['post_date'])
     
     #parse content
-    content = soup.find(id="main-content").text
-    target_content=u'※ 發信站: 批踢踢實業坊(ptt.cc),'
-    content = content.split(target_content)
-    content = content[0].split(date)
-    main_content = content[1].replace('\n', '  ').replace('\t', '  ')
-    
+    try:
+        content = soup.find(id="main-content").text
+        target_content=u'※ 發信站: 批踢踢實業坊(ptt.cc),'
+        content = content.split(target_content)
+        content = content[0].split(date)
+        main_content = content[1].replace('\n', '  ').replace('\t', '  ')
+    except:
+        logging.error("Failed to parse content")
+        main_content = None
+    # ip       
+    try:
+        targetIP=u'※ 發信站: 批踢踢實業坊'
+        ip =  soup.find(string = re.compile(targetIP))
+        ip = re.search(r"[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*",ip).group()
+        ip = ip.strip()
+    except:
+        logging.error("Failed to parse IP")
+        ip = None
+
     article['post_date'] = post_date
     article['post_content'] = main_content
-    
+    article['ip'] = ip
     return article
 
 
@@ -101,33 +125,37 @@ def store_comment(soup, article):
     comments_list = []
 
     for tag in soup.select('div.push'):
-        comment = {}
-        push_tag = tag.find("span", {'class': 'push-tag'}).text
-        #print "push_tag:",push_tag
-        push_userid = tag.find("span", {'class': 'push-userid'}).text       
-        #print "push_userid:",push_userid
-        push_content = tag.find("span", {'class': 'push-content'}).text   
+        try:
+            comment = {}
+            push_tag = tag.find("span", {'class': 'push-tag'}).text
+            #print "push_tag:",push_tag
+            push_userid = tag.find("span", {'class': 'push-userid'}).text       
+            #print "push_userid:",push_userid
+            push_content = tag.find("span", {'class': 'push-content'}).text   
         
-	#print "push_content:",push_content
-        push_ipdatetime = tag.find("span", {'class': 'push-ipdatetime'}).text.strip()
-        push_ipdate = push_ipdatetime.split(' ')[0]
-        push_iptime = push_ipdatetime.split(' ')[1]
-        #print "push-ipdatetime:",push_ipdatetime 
+	    #print "push_content:",push_content
+            push_ipdatetime = tag.find("span", {'class': 'push-ipdatetime'}).text.strip()
+            push_ipdate = push_ipdatetime.split(' ')[0]
+            #push_iptime = push_ipdatetime.split(' ')[1]
+            #print "push-ipdatetime:",push_ipdatetime 
                 
-        #message[num]={"狀態":push_tag.encode('utf-8'),"留言者":push_userid.encode('utf-8'),
-        #    "留言內容":push_content.encode('utf-8'),"留言時間":push_ipdatetime.encode('utf-8')}
+            #message[num]={"狀態":push_tag.encode('utf-8'),"留言者":push_userid.encode('utf-8'),
+            #    "留言內容":push_content.encode('utf-8'),"留言時間":push_ipdatetime.encode('utf-8')}
         
-        comment['commenter'] = push_userid
-        comment['content'] = push_content[1:]
-        comment['comment_date'] = date_convert(article['post_date'].year, push_ipdate)
+            comment['commenter'] = push_userid
+            comment['content'] = push_content[1:]
+            comment['comment_date'] = date_convert(article['post_date'].year, push_ipdate)
 
-        if push_tag == u'推 ':
-            comment['rate'] = 1
-        elif push_tag == u'噓 ':
-            comment['rate'] = -1
-        else:
-            comment['rate'] = 0
+            if push_tag == u'推 ':
+                comment['rate'] = 1
+            elif push_tag == u'噓 ':
+                comment['rate'] = -1
+            else:
+                comment['rate'] = 0
+            comments_list.append(comment)
 
-        comments_list.append(comment)
+        except Exception as e:
+            logging.error("Store comment error: {}".format(e))
+            logging.error("The error tag: {}".format(tag))
 
     return comments_list
