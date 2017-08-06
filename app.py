@@ -92,12 +92,12 @@ def write_db_article(board, article_list, session):
 def update_db_article(article, session):
     is_exist = session.query(Articles).filter(Articles.url == article['url']).first()
     is_updated = session.query(Articles).filter(Articles.url == article['url'],
-                                 Articles.post_date != None).first()
+                                 Articles.post_ip != None).first()
     if is_exist and not is_updated:
         session.query(Articles).filter(Articles.url == article['url']).\
-                    update({Articles.post_date : article['post_date']})
-        session.query(Articles).filter(Articles.url == article['url']).\
-                    update({Articles.post_content : article['post_content']})
+                update({Articles.post_date: article['post_date'], 
+                        Articles.post_content: article['post_content'],
+                        Articles.post_ip: article['ip']})
         session.commit()
         logging.info("This article has been updated: {}".format(article['url']))
 
