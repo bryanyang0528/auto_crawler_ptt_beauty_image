@@ -26,6 +26,7 @@ class Articles(Base):
     url = Column(String, primary_key=True)
     rate = Column(Integer)
     post_content = Column(Text)
+    post_ip = Column(String)
     createdate = Column(DateTime(timezone=True), server_default=func.now())
     images = relationship('Images')
     comments = relationship('Comments')
