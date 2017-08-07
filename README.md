@@ -2,7 +2,11 @@
 
 Auto Crawler Ptt Beauty Image Use Python Schedule
 
-本專案是經由 [PTT_Beauty_Spider](https://github.com/twtrubiks/PTT_Beauty_Spider) 小修改 + [schedule](https://github.com/dbader/schedule) 完成的。
+Thanks to  
+
+[auto_crawler_ptt_beauty_image](https://github.com/twtrubiks/auto_crawler_ptt_beauty_image)
+[PTT_Beauty_Spider](https://github.com/twtrubiks/PTT_Beauty_Spider) 
+[schedule](https://github.com/dbader/schedule)
 
 Deploy on Google App Engine 
 
@@ -12,7 +16,7 @@ Deploy on Google App Engine
 
 * Comments below articles will be updated.
 
-* Image url will be saved in the database.
+* Images url will be saved in the database.
 
 * Database is a Postgresql on GCP.
 
@@ -22,7 +26,7 @@ Deploy on Google App Engine
 
 `python 3.5+`
 
-`[cloud_sql_proxy](https://cloud.google.com/sql/docs/mysql/sql-proxy)`
+[cloud_sql_proxy](https://cloud.google.com/sql/docs/mysql/sql-proxy)
 
 * install python packages
 ```cmd
@@ -37,17 +41,13 @@ pip install -r requirements.txt
 export SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://[username]:[password]@localhost
 export PTT_BOARD=wanted
 export PTT_PAGES=3
-export PTT_CRAWLER_INTERVAL=10
+export PTT_CRAWLER_INTERVAL=30
 ```
 
 * start the crawler
 ```bash
 python app.py
 ```
-
-## schedule
-
-由於要每半小時爬取網頁一次，所以我用了 [schedule](https://github.com/dbader/schedule) , 讓程式依照我們設定的 schedule 下去執行
 
 ## Reference
 
