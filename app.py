@@ -171,7 +171,7 @@ def main(board='beauty', crawler_pages=2):
     logging.info("Add {} posts".format(len(article_list)))
     write_db_article(board, article_list, session)
     count = 0
-    image_seq = []
+    #image_seq = []
     # 進入每篇文章分析內容
     while article_list:
         article = article_list.pop(0)
@@ -189,8 +189,8 @@ def main(board='beauty', crawler_pages=2):
                 update_db_article(article, session)
                 count += 1
                 # 儲存圖面
-                image_seq += imgurl_list
-                write_db(image_seq, article_url, session)
+                #image_seq += imgurl_list
+                write_db(imgurl_list, article_url, session)
 
                 # 儲存推文
                 #print(comments_list)
