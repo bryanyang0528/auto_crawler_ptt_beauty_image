@@ -13,20 +13,20 @@ class Images(Base):
     __tablename__ = 'images'
 
     id = Column(Integer, primary_key=True)
-    url = Column(String, ForeignKey('articles.url'))
-    imgurl = Column(String)
+    url = Column(String(200), ForeignKey('articles.url'))
+    imgurl = Column(String(200))
 
 class Articles(Base):
     __tablename__ = 'articles'
 
-    board = Column(String)
+    board = Column(String(50))
     post_date = Column(Date)
-    author = Column(String)
-    title = Column(String)
-    url = Column(String, primary_key=True)
+    author = Column(String(50))
+    title = Column(String(200))
+    url = Column(String(200), primary_key=True)
     rate = Column(Integer)
     post_content = Column(Text)
-    post_ip = Column(String)
+    post_ip = Column(String(15))
     createdate = Column(DateTime(timezone=True), server_default=func.now())
     images = relationship('Images')
     comments = relationship('Comments')
@@ -35,9 +35,9 @@ class Comments(Base):
     __tablename__ = 'comments'
 
     id = Column(Integer, primary_key=True)
-    commenter = Column(String)
-    url = Column(String, ForeignKey('articles.url'))
-    content = Column(String)
+    commenter = Column(String(50))
+    url = Column(String(200), ForeignKey('articles.url'))
+    content = Column(String(200))
     rate = Column(Integer)
     comment_date = Column(Date)
 
