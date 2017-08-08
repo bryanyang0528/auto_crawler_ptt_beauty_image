@@ -12,6 +12,7 @@ from dbModel import Images, Articles, Comments, DB_connect
 
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 rs = requests.session()
 logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
 
@@ -23,12 +24,12 @@ def get_page_number(content):
 
 def over18(board):
     url = 'https://www.ptt.cc/bbs/{}/index.html'.format(board)
-    res = rs.get(url, verify=False)
+    res = rs.get(url, verify=False, headers=headers)
     while res.status_code != 200:
         time.sleep(30)
         logging.warning("The return code is {}.".format(res.status_code)) 
         logging.warning("The target url cannot be crawled: {}".format(url))
-        res = rs.get(url, verify=False)
+        res = rs.get(url, verify=False, headers=headers)
     # 先檢查網址是否包含'over18'字串 ,如有則為18禁網站
     if 'over18' in res.url:
         logging.info("18禁網頁")
@@ -37,7 +38,7 @@ def over18(board):
             'yes': 'yes'
         }
         res = rs.post('https://www.ptt.cc/ask/over18', verify=False, data=load)
-        res = rs.get(url, verify=False)
+        res = rs.get(url, verify=False, headers=headers)
     return BeautifulSoup(res.text, 'html.parser')
 
 
@@ -158,7 +159,7 @@ def main(board='beauty', crawler_pages=2):
     # 抓取 文章標題 網址 推文數
     while index_list:
         index = index_list.pop(0)
-        res = rs.get(index, verify=False)
+        res = rs.get(index, verify=False, headers=headers)
         # 如網頁忙線中,則先將網頁加入 index_list 並休息1秒後再連接
         if res.status_code != 200:
             index_list.append(index)
@@ -176,7 +177,7 @@ def main(board='beauty', crawler_pages=2):
     while article_list:
         article = article_list.pop(0)
         article_url = article['url']
-        res = rs.get(article_url, verify=False)
+        res = rs.get(article_url, verify=False, headers=headers)
         # 如網頁忙線中,則先將網頁加入 index_list 並休息1秒後再連接
         if res.status_code != 200:
             article_list.append(article)
