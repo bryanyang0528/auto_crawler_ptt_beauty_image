@@ -13,7 +13,7 @@ from dbModel import Images, Articles, Comments, DB_connect
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 rs = requests.session()
-logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s', datefmt='%Y-%m-%d %I:%M:%S', level=logging.INFO)
+logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
 
 def get_page_number(content):
     start_index = content.find('index')
@@ -208,12 +208,16 @@ def main(board='beauty', crawler_pages=2):
 
 
 if __name__ == '__main__':
-    board = os.environ['PTT_BOARD']
+    boards = os.environ['PTT_BOARDS'].split(' ')
     pages = int(os.environ['PTT_PAGES'])
     crawler_interval = int(os.environ['PTT_CRAWLER_INTERVAL'])
-    main(board, pages)
-    schedule.every(crawler_interval).minutes.do(main)
+    for board in boards:
+        #main(board, pages)
+        schedule.every(crawler_interval).minutes.do(main, board=board, crawler_pages=pages)
+
+    schedule.run_all()
     while True:
         logging.info('wating......')
         schedule.run_pending()
-        time.sleep(crawler_interval * 6)
+        time.sleep(10)
+
