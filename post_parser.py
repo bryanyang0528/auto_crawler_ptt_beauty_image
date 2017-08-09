@@ -6,11 +6,12 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 rs = requests.session()
 logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s', datefmt='%Y-%m-%d %I:%M:%S', level=logging.INFO)
 
 def over18(url):
-    res = rs.get(url, verify=False)
+    res = rs.get(url, verify=False, headers=headers)
     # 先檢查網址是否包含'over18'字串 ,如有則為18禁網站
     if 'over18' in res.url:
         print("18禁網頁")
@@ -20,8 +21,8 @@ def over18(url):
             'from': '/bbs/{}/index.html'.format(board),
             'yes': 'yes'
         }
-        res = rs.post('https://www.ptt.cc/ask/over18', verify=False, data=load)
-        res = rs.get(url, verify=False)
+        res = rs.post('https://www.ptt.cc/ask/over18', verify=False, data=load, headers=headers)
+        res = rs.get(url, verify=False, headers=headers)
     return BeautifulSoup(res.text, 'html.parser'), res.status_code
 
 
@@ -131,7 +132,7 @@ def store_comment(soup, article):
             #print "push_tag:",push_tag
             push_userid = tag.find("span", {'class': 'push-userid'}).text       
             #print "push_userid:",push_userid
-            push_content = tag.find("span", {'class': 'push-content'}).text   
+            push_content = tag.find("span", {'class': 'push-content'}).text.strip()  
         
 	    #print "push_content:",push_content
             push_ipdatetime = tag.find("span", {'class': 'push-ipdatetime'}).text.strip()
