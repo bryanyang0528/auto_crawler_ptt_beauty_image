@@ -37,7 +37,7 @@ class Comments(Base):
     id = Column(Integer, primary_key=True)
     commenter = Column(String(50))
     url = Column(String(200), ForeignKey('articles.url'))
-    content = Column(String(200))
+    content = Column(Text)
     rate = Column(Integer)
     comment_date = Column(Date)
 
