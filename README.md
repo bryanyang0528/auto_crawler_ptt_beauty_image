@@ -16,9 +16,11 @@ Deploy on Google App Engine
 
 * Comments below articles will be updated.
 
-* Images url will be saved in the database.
+* Url of images will be saved in the database.
 
-* Database is a Postgresql on GCP.
+* Crawler multiple boards in a deployment.
+
+* Database is a MySQL on GCP.
 
 ## How to use
 
@@ -38,14 +40,15 @@ pip install -r requirements.txt
 * Export env variable (test the crawler on your local machine)
 ```bash
 ./cloud_sql_proxy -instances=[instance_name]:[region]:[project]=tcp:5432
-export SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://[username]:[password]@localhost
-export PTT_BOARD=wanted
+export SQLALCHEMY_DATABASE_URI=mysql+mysqlconnector://[username]:[password]@localhost:3306/database
+export PTT_BOARDS="target1 tager2 wanted "
 export PTT_PAGES=3
 export PTT_CRAWLER_INTERVAL=30
 ```
 
 * start the crawler
 ```bash
+python dbModel.py (create tables if need)
 python app.py
 ```
 
