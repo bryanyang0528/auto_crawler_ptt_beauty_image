@@ -82,13 +82,16 @@ def write_db_article(board, article_list, session):
     for article in article_list:
         is_exist = session.query(Articles).filter(Articles.url == article['url']).first()
         if not is_exist:
-            data = Articles(board=board, author=article['author'],
+            if len(article['title']) > 200:
+                logging.error('Len of the title is too long. url: {}'.format(article['url']))
+            else:
+                data = Articles(board=board, author=article['author'],
                     title=article['title'], url=article['url'], rate=article['rate'])
-            session.add(data)
-            logging.info("The article have been added: {}".format(article['url']))
+                session.add(data)
+                logging.info("The article have been added: {}".format(article['url']))
         else:
             logging.warning("This article is exist: {}".format(article['url']))
-    session.commit()
+    #session.commit()
 
 def update_db_article(article, session):
     is_exist = session.query(Articles).filter(Articles.url == article['url']).first()
@@ -99,7 +102,7 @@ def update_db_article(article, session):
                 update({Articles.post_date: article['post_date'], 
                         Articles.post_content: article['post_content'],
                         Articles.post_ip: article['ip']})
-        session.commit()
+        #session.commit()
         logging.info("This article has been updated: {}".format(article['url']))
 
     elif is_updated:
@@ -116,7 +119,7 @@ def write_db_comment(comments, article_url, session):
                 comment_date = comment['comment_date'],
                 rate = comment['rate'], content=comment['content'])
             session.add(data)
-        session.commit()
+        #session.commit()
         logging.info("Comments have been added: {}".format(article_url))
 
 def write_db(images, article_url, session):
@@ -127,7 +130,14 @@ def write_db(images, article_url, session):
             if not is_exist:
                 data = Images(url=article_url, imgurl=image)
                 session.add(data)
-        session.commit()
+                try:
+                    r = requests.post('{}/api/vision/v1.0'.format(os.environ['VISION_SERVER']),
+                            data={'source':'ptt', 'url':image})
+                    if r.status_code == 200:
+                        logging.info("Vision API successed")
+                except Exception as e:
+                    logging.error("Vision API failed: {}".format(e))
+        #session.commit()
         logging.info("Images have been added: {}".format(article_url))
     else:
         logging.warning("Images had been added before: {}".format(article_url))
@@ -148,7 +158,6 @@ def main(board='beauty', crawler_pages=2):
     soup = over18(board)
     all_page_url = soup.select('.btn.wide')[1]['href']
     start_page = get_page_number(all_page_url)
-
     logging.info("Analyzing download page...")
     index_list = []
     article_list = []
@@ -170,7 +179,12 @@ def main(board='beauty', crawler_pages=2):
 
     total = len(article_list)
     logging.info("Add {} posts".format(len(article_list)))
-    write_db_article(board, article_list, session)
+    try:
+        write_db_article(board, article_list, session)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        logging.error(e)
     count = 0
     #image_seq = []
     # 進入每篇文章分析內容
@@ -187,16 +201,19 @@ def main(board='beauty', crawler_pages=2):
             if is_exist:
                 logging.info("Analyzing the article: {}".format(article_url))
                 article, imgurl_list, comments_list = post_parser.post_parser(article)
-                update_db_article(article, session)
+                try:
+                    update_db_article(article, session)
+                    # 儲存圖面
+                    #image_seq += imgurl_list
+                    write_db(imgurl_list, article_url, session)
+                    # 儲存推文
+                    #print(comments_list)
+                    write_db_comment(comments_list, article_url, session)
+                    session.commit()
+                except Exception as e:
+                    session.rollback()
+                    logging.error(e)
                 count += 1
-                # 儲存圖面
-                #image_seq += imgurl_list
-                write_db(imgurl_list, article_url, session)
-
-                # 儲存推文
-                #print(comments_list)
-                write_db_comment(comments_list, article_url, session)
-
                 logging.info('download: {:.2%}'.format(count / total))
         time.sleep(0.05)
 
