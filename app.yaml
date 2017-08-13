@@ -9,9 +9,10 @@ runtime_config:
 env_variables:
         SQLALCHEMY_DATABASE_URI: >-
                 mysql+mysqlconnector://ptt:123456@/ptt?unix_socket=/cloudsql/ptt-crawler-176104:asia-northeast1:vpon-data-crawler
-        PTT_BOARDS: 'gossiping beauty wanted movie car'
+        PTT_BOARDS: 'gossiping beauty wanted movie car C_CHAT'
         PTT_PAGES: '5'
         PTT_CRAWLER_INTERVAL: '30'
+        VISION_SERVER: 'https://vision-api-server-dot-ptt-crawler-176104.appspot.com/'
 
 beta_settings:
         cloud_sql_instances: ptt-crawler-176104:asia-northeast1:vpon-data-crawler
